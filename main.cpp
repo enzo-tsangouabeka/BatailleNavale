@@ -75,7 +75,7 @@ void setColor(int _color = 7);
 void game();
 void prompt(bool _isForPlayer);
 void shootMissile(int _row, int _column, int _matrixToEdit[10][10]);
-void positionToMatrix(string position);
+void positionToMatrix();
 void scoreMAJ();
 
 
@@ -395,7 +395,6 @@ void game() {
 * @brief Permet d'afficher le promt de chaque joueur
 */
 void prompt(bool _isForPlayer) {
-    string move;
     bool isntGoodMove(true);
     system("cls");
 
@@ -412,9 +411,7 @@ void prompt(bool _isForPlayer) {
 
         // Obtenire les coordonées du tir
         while (isntGoodMove) {
-            cout << "Quel sera votre prochain mouvement > ";
-            cin >> move;
-            positionToMatrix(move);
+            positionToMatrix();
             if (isGoodMove(row, column, matrixOfMachineBoat)) {
                 isntGoodMove = false;
             }
@@ -475,9 +472,7 @@ void prompt(bool _isForPlayer) {
 
         // Obtenire les coordonées du tir
         while (isntGoodMove) {
-            cout << "Quel sera votre prochain mouvement > ";
-            cin >> move;
-            positionToMatrix(move);
+            positionToMatrix();
             if (isGoodMove(row, column, matrixOfMachineBoat)) {
                 isntGoodMove = false;
             }
@@ -549,17 +544,39 @@ void scoreMAJ() {
 
 /**
 * @fn void positionToMatrix(string position);
-* @param string position : Entré utilisateur
 * @brief Permet de transformer une entré de type lettreChiffres en position sur la matrice
 */
-void positionToMatrix(string position) {
-    char letter = position[0];
+void positionToMatrix() {
+    string move;
+    bool isntGoodEntry(true);
+    while (isntGoodEntry) {
+        cout << "Quel sera votre prochain mouvement > ";
+        cin >> move;
+        // Vérification que l'entrée est valide (format lettreChiffre, ex : A1)
+        if (move.length() >= 2 && isalpha(move[0]) && isdigit(move[1])) {
+            char letter = toupper(move[0]); // Convertir la lettre en majuscule
+            try {
+                int number = stoi(move.substr(1)); // Extraire le chiffre après la lettre (Supprime le premier caractère)
 
-    // Convertir la lettre en majuscule manuellement si besoin
-    if (letter >= 'a' && letter <= 'z') {
-        letter = letter - ('a' - 'A');
+                // Vérification : (lettre A-J, chiffre 1-10)
+                if (letter >= 'A' && letter <= 'J' && number >= 1 && number <= 10) {
+                    column = letter - 'A';       // Convertir la lettre en colonne
+                    row = number - 1;           // Convertir le chiffre en ligne
+                    isntGoodEntry = false;      // Sortir de la boucle
+                } else {
+                    setColor(4);
+                    cout << "Entrez une position valide (ex: A1, B5... J10).\n";
+                    setColor(7);
+                }
+            } catch (const invalid_argument &) { // Permet d'éviter le crash du programe
+                setColor(4);
+                cout << "Erreur : entrée invalide. Entrez une position comme A1 ou J10.\n";
+                setColor(7);
+            }
+        } else {
+            setColor(4);
+            cout << "Entrez une position valide (ex: A1, B5... J10).\n";
+            setColor(7);
+        }
     }
-
-    column = letter - 'A'; // Convertir la lettre en colonne (A=0, B=1, ..., J=9)
-    row = stoi(position.substr(1)) - 1; // Convertir le chiffre en ligne (1=0, 2=1, ..., 10=9)
 }
