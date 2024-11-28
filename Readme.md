@@ -78,8 +78,4 @@ Le jeu utilise des couleurs pour améliorer l'expérience visuelle :
 
 
 ### To do
-- Décomenter le code
-- Systeme de choix du niveau
-- Mettre des `short` à la place des `int` (ou des `char`) pour gagner en mémoire
-- Correction des fautes d'orthographes
-- printMatrix et prompt : Mettre les 2 plateaux sur la même ligne + améliorer l'interface du jeu + Afficher les scores et le round
+- printMatrix et prompt : Mettre les 2 plateaux sur la même ligne + améliorer l'interface du jeu
