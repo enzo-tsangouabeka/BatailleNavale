@@ -6,16 +6,16 @@ Ce projet est une simulation du jeu classique **Bataille Navale**, développée 
 
 ### Fonctionnalités principales
 - **Niveau 0** : Simule une partie où les bateaux sont positionnés aléatoirement au début du jeu. Les joueurs tirent tour à tour, et la partie se termine lorsque tous les navires d'un joueur sont coulés.
-- **Niveau 1 (à implémenter)** : Les joueurs placent leurs propres navires.
-- **Niveau 2 (à implémenter)** : Un joueur affronte une intelligence artificielle qui tire aléatoirement.
+- **Niveau 1** : Les joueurs placent leurs propres navires.
+- **Niveau 2** : Un joueur affronte une intelligence artificielle qui tire aléatoirement.
 
 ---
 
 ## Prérequis
 
-- **Compilateur C++** compatible avec C++11 ou supérieur.
+- **Compilateur C++** compatible avec C++20 ou supérieur.
 - **Windows** (utilisation de la bibliothèque `windows.h` pour changer la couleur de la console).
-- **CLion** ou tout IDE prenant en charge C++ (facultatif).
+- **Console Windows** le code offre de meilleur résultat sur la console windows ("cls", couleur, printMatrix, etc...)
 
 ---
 
@@ -66,16 +66,12 @@ Lancez l'exécutable généré :
 Le jeu utilise des couleurs pour améliorer l'expérience visuelle :
 
     Bleu : Navires.
-    Rouge : Missiles touchées.
+    Rouge : Missiles touchées, Erreur.
     Gris clair : Mer et missiles manqué.
-
+    Vert : Fin de partie.
+    Violet : Changement de joueur
 
 ### **Auteur**
 
 - Enzo Tsangouabeka
-- Étudiant en BTS Informatique
-- etsangouabeka@gmail.com
-
-
-### To do
-- printMatrix et prompt : Mettre les 2 plateaux sur la même ligne + améliorer l'interface du jeu
+- enzo.t@lycee-de-beauvoir.education
