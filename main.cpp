@@ -54,6 +54,9 @@ array<string, 10> tableOfLetters{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J
 // Tableau utiliser pour l'affichage des nom de bateau
 array<string,6> boat = {"Erreur", "Carrier", "Battleship", "Cruiser", "Submarine", "Destroyer"};
 
+// Tableau des coups disponible
+array<string,100> availableMoves;
+
 // Coordonné des missiles
 int row(0), column(0);
 
@@ -80,9 +83,24 @@ void setColor(int _color = 7);
 void game(int _gameMode);
 void prompt(bool _isForPlayer, int _gameMode);
 void shootMissile(int _row, int _column, int _matrixToEdit[10][10]);
-void positionToMatrix(int _isntForBoatInit = true, int _boatID = 0);
+void positionToMatrix(int _isntForBoatInit = true, int _boatID = 0, string _externalMove = "N/A");
 void scoreMAJ();
+void initAvalableMoves();
 
+
+// Commantaire
+string playRandomMove() {
+    int randomIndex(0);
+    string move;
+    while (true) {
+        randomIndex = rand() % 100;
+        move = availableMoves[randomIndex];
+        if (move != "N/A") {
+            availableMoves[randomIndex] = "N/A";
+            return move;
+        }
+    }
+}
 
 /**
 * @fn bool isEmptyPlacement(int _startPointX, int _startPointY, int _boatDirection, short _boatSize, int _matrixToSearch[10][10]);
@@ -224,6 +242,7 @@ int cheakTypeEntire(int& _entire) {
 }
 
 int main() {
+    initAvalableMoves() ;
     int answer(0);
     bool isntGoodNumber(true);
     system("cls");
@@ -238,7 +257,7 @@ int main() {
     while (isntGoodNumber) {
         cout << "Votre reponse >";
         cheakTypeEntire(answer);
-        isntGoodNumber = !(answer == 0 || answer == 1 /*|| answer == 2*/);
+        isntGoodNumber = !(answer == 0 || answer == 1 || answer == 2);
     }
     system("cls");
     game(answer);
@@ -488,6 +507,12 @@ void game(int _gameMode) {
         generateBoards(false, false);
         system("cls");
     }
+    else if (_gameMode == 2) {
+        // Génère les positions des bateaux pour le joueur et la machine manuellement
+        generateBoards(true, false);
+        system("cls");
+        generateBoards(false); // Machine
+    }
 
     // Boucle se jouant jusqu'à la victoire d'un des 2 joueurs en affichant les prompts à tour de rôle
     while (_isntEndGameCondition) {
@@ -521,7 +546,7 @@ void prompt(bool _isForPlayer, int _gameMode) {
         system("cls");
         cout << "----- Tour du JOUEUR 1 -----\n" << endl;
         cout << "Tour : " << round << endl;
-        cout << "joueur 1 (" << MAX_SCORE - machineScore << "), joueur 2 (" << MAX_SCORE - playerScore << ")" << endl;
+        cout << "joueur 1 (" << MAX_SCORE - playerScore << "), joueur 2 (" << MAX_SCORE - machineScore << ")" << endl;
         cout << "Plateau joueur 1 : " << endl;
         printMatrix(matrixOfPlayerBoat);
         cout << endl;
@@ -576,10 +601,18 @@ void prompt(bool _isForPlayer, int _gameMode) {
                 cout << "Coule" << endl;
             }
         }
-        system("pause");
-        system("cls");
-        setColor(5); cout << "Changement de sens" << endl; setColor(7);
-        system("pause");
+        if(_gameMode == 2) {
+            setColor(5); cout << "Tour souvant" << endl; setColor(7);
+            system("pause");
+            system("cls");
+            round++;
+        }
+        else {
+            system("pause");
+            system("cls");
+            setColor(5); cout << "Changement de sens" << endl; setColor(7);
+            system("pause");
+        }
     }
 
     // Joueur 2
@@ -587,7 +620,7 @@ void prompt(bool _isForPlayer, int _gameMode) {
         system("cls");
         cout << "----- Tour du JOUEUR 2 -----\n" << endl;
         cout << "Tour : " << round++ << endl;
-        cout << "joueur 1 (" << MAX_SCORE - machineScore << "), joueur 2 (" << MAX_SCORE - playerScore << ")" << endl;
+        cout << "joueur 1 (" << MAX_SCORE - playerScore << "), joueur 2 (" << MAX_SCORE - machineScore << ")" << endl;
         cout << "Plateau joueur 2 : " << endl;
         printMatrix(matrixOfMachineBoat);
         cout << endl;
@@ -648,7 +681,30 @@ void prompt(bool _isForPlayer, int _gameMode) {
         system("pause");
     }
     else {
-        // Pour le bot auto
+        string RandomMove = playRandomMove();
+
+        // Obtenire les coordonées du tir
+        positionToMatrix(true, 0, RandomMove);
+
+        // Effectuer le tir de missile
+        shootMissile(row, column, matrixOfMachineMissile);
+        shootMissile(row, column, matrixOfPlayerBoat);
+
+        if(matrixOfPlayerBoat[row][column] - MISSILE_VALUE == CARRIER_VALUE) {
+            machineCarrier--;
+        }
+        else if(matrixOfPlayerBoat[row][column] - MISSILE_VALUE == BATTLESHIP_VALUE) {
+            machineBattleship--;
+        }
+        else if(matrixOfPlayerBoat[row][column] - MISSILE_VALUE == CRUISER_VALUE) {
+            machineCruiser--;
+        }
+        else if(matrixOfPlayerBoat[row][column] - MISSILE_VALUE == SUBMARINE_VALUE) {
+            machineSubmarine--;
+        }
+        else if(matrixOfPlayerBoat[row][column] - MISSILE_VALUE == DESTROYER_VALUE) {
+            machineDestroyer--;
+        }
     }
     scoreMAJ();
 }
@@ -677,9 +733,18 @@ void scoreMAJ() {
 * @fn void positionToMatrix(string position);
 * @brief Permet de transformer une entré de type lettreChiffres en position sur la matrice
 */
-void positionToMatrix(int _isntForBoatInit, int _boatID) {
+void positionToMatrix(int _isntForBoatInit, int _boatID, string _externalMove) {
     string move;
     bool isntGoodEntry(true);
+
+    if(_externalMove != "N/A") {
+        char letter = toupper(_externalMove[0]);
+        int number = stoi(_externalMove.substr(1));
+        column = letter - 'A';
+        row = number - 1;
+        return;
+    }
+
     while (isntGoodEntry) {
         if (_isntForBoatInit) {
             cout << "Quel sera votre prochain mouvement > ";
@@ -691,7 +756,7 @@ void positionToMatrix(int _isntForBoatInit, int _boatID) {
         }
         // Vérification que l'entrée est valide (format lettreChiffre, ex : A1)
         if (move.length() >= 2 && isalpha(move[0]) && isdigit(move[1])) {
-            char letter = toupper(move[0]); // Convertir la lettre en majuscule
+            char letter = toupper(move[0]); // Convertir la lettre en majuscule et l'extrait
             try {
                 int number = stoi(move.substr(1)); // Extraire le chiffre après la lettre (Supprime le premier caractère)
 
@@ -714,6 +779,16 @@ void positionToMatrix(int _isntForBoatInit, int _boatID) {
             setColor(4);
             cout << "Entrez une position valide (ex: A1, B5... J10).\n";
             setColor(7);
+        }
+    }
+}
+
+void initAvalableMoves() {
+    int index = 0;
+    for (char col = 'A'; col <= 'J'; ++col) {
+        for (int row = 1; row <= 10; ++row) {
+            availableMoves[index] = string(1, col) + to_string(row);
+            ++index;
         }
     }
 }
