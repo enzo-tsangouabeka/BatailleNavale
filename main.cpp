@@ -14,12 +14,12 @@
 Tour à tour, les joueurs doivent trouver les positions des navires de l'autre joueur pour les couler.
 La partie est terminée quand tout les navires de l'adversaire sont coulés. Pour simplifier, un plateau de 10x10 cases pourra suffir avec dans ce cas 1 bateau de 4, un autre de 3 et un bateau de 2.
 
-Niveau 0 (en cours):
+Niveau 0 (fait et push):
 Votre programme simule une partie en affichant le plateau de chaque joueur à tour de role sous la forme d'un tableau 2D.
 Les cases sont choisies par les deux joueurs et la fin de partie déterminée visuellement.
 Les navires sont positionnés dès le départ par le programme et ne peuvent être modifiés par les joueurs.
 
-Niveau 1 (non fait):
+Niveau 1 (en cours):
 Les navires sont placés par les joueurs.
 
 Niveau 2 (non fait):
@@ -32,6 +32,7 @@ Un joueur joue contre l'ordinateur qui choisit aléatoirement ses tirs.
 #include <string>
 #include <array> // Pour les tableaux
 #include <windows.h> // Pour la couleur
+#include <limits> // Pour ignorer les mauvaises entrées (int)
 
 using namespace std;
 
@@ -50,13 +51,17 @@ int machineCarrier(5), machineBattleship(4), machineCruiser(3), machineSubmarine
 // Tableau utiliser pour l'affichage des matrices
 array<string, 10> tableOfLetters{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"};
 
+// Tableau utiliser pour l'affichage des nom de bateau
+array<string,6> boat = {"Erreur", "Carrier", "Battleship", "Cruiser", "Submarine", "Destroyer"};
+
 // Coordonné des missiles
 int row(0), column(0);
 
 // Score et nombre de tours
-int round(0);
+int round(1);
 int playerScore(playerCarrier + playerBattleship + playerCruiser + playerSubmarine + playerDestroyer);
 int machineScore(machineCarrier + machineBattleship + machineCruiser + machineSubmarine +  machineDestroyer);
+unsigned const int MAX_SCORE(17);
 
 // Différantes valeurs pour les emplacements des matrises
 int DEFAULT_VALUE (0b00000);
@@ -69,13 +74,13 @@ int DESTROYER_VALUE (0b10000);
 
 // Sous-Programme
 void printMatrix(int _matrixToPrint[10][10]);
-void generateBoards(bool _isForPlayer);
-void AddBoat(int _boatID, int _matrixToEdit[10][10]);
+void generateBoards(bool _isForPlayer, bool _isntManual = true);
+void AddBoat(int _boatID, int _matrixToEdit[10][10], bool  _isntManual = true);
 void setColor(int _color = 7);
-void game();
-void prompt(bool _isForPlayer);
+void game(int _gameMode);
+void prompt(bool _isForPlayer, int _gameMode);
 void shootMissile(int _row, int _column, int _matrixToEdit[10][10]);
-void positionToMatrix();
+void positionToMatrix(int _isntForBoatInit = true, int _boatID = 0);
 void scoreMAJ();
 
 
@@ -116,6 +121,48 @@ bool isEmptyPlacement(int _startPointX, int _startPointY, int _boatDirection, sh
 }
 
 /**
+* @fn bool reachableFinalDestination(int row, int column, int direction, int shipSize);
+* @brief Permet de verifier le si un bateau depasse des limites
+* @param int row : Position y de départ
+* @param int column : Position x de départ
+* @param int direction : Direction du bateau
+* @param int shipSize : Taille du bateau (pour le nombre d'itération dans la boucle)
+* @return bool : Son rôle de permettre d'autoriser le placement d'un bateau sur une matrice si celle ci est bien vide à l'emplacement choisi
+*/
+bool reachableFinalDestination(int row, int column, int direction, int shipSize) {
+    switch (direction) {
+        case 1: // Haut
+            if (row - shipSize + 1 < 0) {
+                setColor(4); cout << "Le bateau depasse des limites, veuiller rentrer de bonne valeur de direction." << endl; setColor(7);
+                return false; // Le bateau dépasse vers le haut
+            }break;
+
+        case 2: // Bas
+            if (row + shipSize > 10) {
+                setColor(4); cout << "Le bateau depasse des limites, veuiller rentrer de bonne valeur de direction." << endl; setColor(7);
+                return false; // Le bateau dépasse vers le bas
+            }break;
+
+        case 3: // Droite
+            if (column + shipSize > 10) {
+                setColor(4); cout << "Le bateau depasse des limites, veuiller rentrer de bonne valeur de direction." << endl; setColor(7);
+                return false; // Le bateau dépasse vers la droite
+            }break;
+
+        case 4: // Gauche
+            if (column - shipSize + 1 < 0) {
+                setColor(4); cout << "Le bateau depasse des limites, veuiller rentrer de bonne valeur de direction." << endl; setColor(7);
+                return false; // Le bateau dépasse vers la gauche
+            }break;
+
+        default:
+            setColor(4); cout << "Erreur lors de la verification de la fonction : reachableFinalDestination()" << endl; setColor(7);
+            return false; // Direction invalide
+    }
+    return true;
+}
+
+/**
 * @fn bool isGoodMove(int _startPointX, int _startPointY, int _matrixToSearch[10][10]);
 * @brief Permet de verifier la validité de l'entré utilisateur
 * @param int _startPointX : Position x de départ
@@ -133,9 +180,7 @@ bool isGoodMove(int _startPointX, int _startPointY, int _matrixToSearch[10][10])
         setColor(7);
         return false;
     }
-    setColor(4);
-    cout << "Attention, vos coup doivent etre compris enter A1 et J10 !" << endl;
-    setColor(7);
+    setColor(4); cout << "Attention, vos coup doivent etre compris enter A1 et J10 !" << endl; setColor(7);
     return false;
 }
 
@@ -156,22 +201,47 @@ bool isEndGameCondition() {
         }
     }
     if (playerScore == 0) {
-        setColor(10);
-        cout << "La machine a gagner" << endl;
-        setColor(7);
+        setColor(10); cout << "La joueur 1 a gagner" << endl; setColor(7);
     }
     if (machineScore == 0) {
-        setColor(10);
-        cout << "Le joueur a gagner" << endl;
-        setColor(7);
+        setColor(10); cout << "Le joueur 2 a gagner" << endl; setColor(7);
     }
     return (playerScore == 0 || machineScore == 0 || matrixFillScore == 0) ;
 }
 
+/**
+* @fn int cheakTypeEntire(int& _entire);
+* @brief Fonction de vérification des entiers
+* @return int : Retourne un entier valide
+*/
+int cheakTypeEntire(int& _entire) {
+    while (!(cin >> _entire)) {
+        cin.clear();  // Efface le message d'erreur de cin
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');  // Ignore la dernière mauvaise entrées
+        cout << "Erreur : Veuillez entrer un nombre entier :";
+    }
+    return _entire;  // Retourner l'entier validé
+}
+
 int main() {
+    int answer(0);
+    bool isntGoodNumber(true);
     system("cls");
     srand(time(0));
-    game();
+
+
+    cout << "Choisissez un niveau de jeu :" << endl;
+    cout << " - Niveau 0 = Generation automatique des bateaux + PvP" << endl;
+    cout << " - Niveau 1 = Generation manuel des bateaux + PvP" << endl;
+    cout << " - Niveau 2 = Generation manuel des bateaux + PvE (non disponible)" << endl;
+    
+    while (isntGoodNumber) {
+        cout << "Votre reponse >";
+        cheakTypeEntire(answer);
+        isntGoodNumber = !(answer == 0 || answer == 1 /*|| answer == 2*/);
+    }
+    system("cls");
+    game(answer);
     return 0;
 }
 
@@ -213,9 +283,7 @@ void printMatrix(int _matrixToPrint[10][10]) {
                     break;
                 default: // Erreur
                     if (_matrixToPrint[i][j] > 0b100000) { // Missile ayant touché un bateau
-                        setColor(4); // 4 = Rouge
-                        cout << "X  ";
-                        setColor(7); // Réinitialise la couleur
+                        setColor(4); cout << "X  "; setColor(7);
                     } else {
                         cout << "F  "; // Fusion de bateau (Impossible thériquement)
                     }
@@ -230,25 +298,46 @@ void printMatrix(int _matrixToPrint[10][10]) {
 * @fn void generateBoard()
 * @brief Géneration des 5 bateaux pour chaqun des 2 camps, 10 au total (horizontal ou vertical)
 */
-void generateBoards(bool _isForPlayer) {
-    if(_isForPlayer) {
-        AddBoat(1, matrixOfPlayerBoat);
-        AddBoat(2, matrixOfPlayerBoat);
-        AddBoat(3, matrixOfPlayerBoat);
-        AddBoat(4, matrixOfPlayerBoat);
-        AddBoat(5, matrixOfPlayerBoat);
-        // cout << "matrixOfPlayerBoat : " << endl;
-        // printMatrix(matrixOfPlayerBoat);
+void generateBoards(bool _isForPlayer, bool _isntManual) {
+    if(_isntManual) {
+        if(_isForPlayer) {
+            AddBoat(1, matrixOfPlayerBoat);
+            AddBoat(2, matrixOfPlayerBoat);
+            AddBoat(3, matrixOfPlayerBoat);
+            AddBoat(4, matrixOfPlayerBoat);
+            AddBoat(5, matrixOfPlayerBoat);
+        }
+        else {
+            AddBoat(1, matrixOfMachineBoat);
+            AddBoat(2, matrixOfMachineBoat);
+            AddBoat(3, matrixOfMachineBoat);
+            AddBoat(4, matrixOfMachineBoat);
+            AddBoat(5, matrixOfMachineBoat);
+        }
     }
     else {
-        AddBoat(1, matrixOfMachineBoat);
-        AddBoat(2, matrixOfMachineBoat);
-        AddBoat(3, matrixOfMachineBoat);
-        AddBoat(4, matrixOfMachineBoat);
-        AddBoat(5, matrixOfMachineBoat);
-        // cout << "matrixOfMachineBoat : " << endl;
-        // printMatrix(matrixOfMachineBoat);
+        if(_isForPlayer) {
+            AddBoat(1, matrixOfPlayerBoat, false);
+            AddBoat(2, matrixOfPlayerBoat, false);
+            AddBoat(3, matrixOfPlayerBoat, false);
+            AddBoat(4, matrixOfPlayerBoat, false);
+            AddBoat(5, matrixOfPlayerBoat ,false);
+            cout << "Voici votre plateau : " << endl;
+            printMatrix(matrixOfPlayerBoat);
+            system("pause");
+        }
+        else {
+            AddBoat(1, matrixOfMachineBoat, false);
+            AddBoat(2, matrixOfMachineBoat, false);
+            AddBoat(3, matrixOfMachineBoat, false);
+            AddBoat(4, matrixOfMachineBoat, false);
+            AddBoat(5, matrixOfMachineBoat, false);
+            cout << "Voici votre plateau : " << endl;
+            printMatrix(matrixOfMachineBoat);
+            system("pause");
+        }
     }
+
 }
 
 /**
@@ -260,8 +349,8 @@ void generateBoards(bool _isForPlayer) {
 * @param int boatID : Type du bateau
 * @param int _matrixToEdit : Matrice à éditer
 */
-void AddBoat(int _boatID, int _matrixToEdit[10][10]) {
-    short boatDiraction(0);
+void AddBoat(int _boatID, int _matrixToEdit[10][10], bool _isntManual) {
+    int boatDirection(0);
     int xPositionToStart(rand() % 10), yPositionToStart(rand() % 10), BOX_VALUE(DEFAULT_VALUE);
     short shipSize(0);
 
@@ -286,43 +375,58 @@ void AddBoat(int _boatID, int _matrixToEdit[10][10]) {
         shipSize = 2;
     }
 
-    // Permet de générer l'emplacement d'un bateau
-    do {
-        boatDiraction = (rand() % 4 + 1);
-        if (boatDiraction == 1) { // haut
-            xPositionToStart = (rand() % 10);
-            yPositionToStart = rand() % (10 - shipSize) + shipSize;
-        }
-        else if (boatDiraction == 2) { // bas
-            xPositionToStart = rand() % 10;
-            yPositionToStart = rand() % (10 - shipSize);
-        }
-        else if (boatDiraction == 3) { // droite
-            xPositionToStart = rand() % (10 - shipSize);
-            yPositionToStart = rand() % 10;
-        }
-        else if (boatDiraction == 4) { // gauche
-            xPositionToStart = rand() % (10 - shipSize) + shipSize;
-            yPositionToStart = rand() % 10;
-        }
-    } while (!isEmptyPlacement(xPositionToStart, yPositionToStart, boatDiraction, shipSize, _matrixToEdit));
+    if (_isntManual) {
+        // Permet de générer l'emplacement d'un bateau
+        do {
+            boatDirection = (rand() % 4 + 1);
+            if (boatDirection == 1) { // haut
+                xPositionToStart = (rand() % 10);
+                yPositionToStart = rand() % (10 - shipSize) + shipSize;
+            }
+            else if (boatDirection == 2) { // bas
+                xPositionToStart = rand() % 10;
+                yPositionToStart = rand() % (10 - shipSize);
+            }
+            else if (boatDirection == 3) { // droite
+                xPositionToStart = rand() % (10 - shipSize);
+                yPositionToStart = rand() % 10;
+            }
+            else if (boatDirection == 4) { // gauche
+                xPositionToStart = rand() % (10 - shipSize) + shipSize;
+                yPositionToStart = rand() % 10;
+            }
+        } while (!isEmptyPlacement(xPositionToStart, yPositionToStart, boatDirection, shipSize, _matrixToEdit));
+    }
+    else {
+        do {
+            boatDirection = 0;
+            positionToMatrix(false, _boatID);
+            while (boatDirection < 1 || boatDirection > 4){
+                cout << "Quel est votre la direction (1=Haut, 2=Bas, 3=Droite, 4=Gauche) " << endl;
+                cin >> boatDirection; // Vérifier la validité de l'entré
+            }
+            yPositionToStart = row;
+            xPositionToStart = column;
 
-    if (boatDiraction == 1) { // Génerer un bateau vers le haut
+        } while (!isEmptyPlacement(column, row, boatDirection, shipSize, _matrixToEdit) || !reachableFinalDestination(yPositionToStart, xPositionToStart, boatDirection, shipSize));
+    }
+
+    if (boatDirection == 1) { // Génerer un bateau vers le haut
         for (int i(0); i < shipSize; i++) {
             _matrixToEdit[yPositionToStart - i][xPositionToStart] += BOX_VALUE;
         }
     }
-    else if (boatDiraction == 2) { // Génerer un bateau vers le bas
+    else if (boatDirection == 2) { // Génerer un bateau vers le bas
         for (int i(0); i < shipSize; i++) {
             _matrixToEdit[yPositionToStart + i][xPositionToStart] += BOX_VALUE;
         }
     }
-    else if (boatDiraction == 3) { // Génerer un bateau vers la droite
+    else if (boatDirection == 3) { // Génerer un bateau vers la droite
         for (int i(0); i < shipSize; i++) {
             _matrixToEdit[yPositionToStart][xPositionToStart + i] += BOX_VALUE;
         }
     }
-    else if (boatDiraction == 4) { // Génerer un bateau vers la gauche
+    else if (boatDirection == 4) { // Génerer un bateau vers la gauche
         for (int i(0); i < shipSize; i++) {
             _matrixToEdit[yPositionToStart][xPositionToStart - i] += BOX_VALUE;
         }
@@ -363,25 +467,39 @@ void setColor(int _color) {
 /**
 * @fn void printMatrix(int _matrixToPrint[10][10]);
 * @brief Routine principale permettant au jeu de marcher
+* @param int _gameMode : Choix du mode de jeu
 */
-void game() {
+void game(int _gameMode) {
+    system("cls");
     bool _isntEndGameCondition(true) ;
 
-    // Génère les positions des bateaux pour le joueur et la machine
-    generateBoards(true); // Joueur
-    generateBoards(false); // Machine
+    if(_gameMode == 0) {
+        // Génère les positions des bateaux pour le joueur et la machine automatiquement
+        generateBoards(true); // Joueur
+        generateBoards(false); // Machine
+    }
+    else if (_gameMode == 1) {
+        // Génère les positions des bateaux pour le joueur et la machine manuellement
+        generateBoards(true, false);
+        system("cls");
+        setColor(5); cout << "Changement, Joueur 2 a vous" << endl; setColor(7);
+        system("pause");
+        system("cls");
+        generateBoards(false, false);
+        system("cls");
+    }
 
     // Boucle se jouant jusqu'à la victoire d'un des 2 joueurs en affichant les prompts à tour de rôle
     while (_isntEndGameCondition) {
         if (!isEndGameCondition() && _isntEndGameCondition) {// Tour du joueur 1
-            prompt(true);
+            prompt(true, _gameMode);
         }
         else {
             _isntEndGameCondition = false;
         }
         if (!isEndGameCondition() && _isntEndGameCondition) {
             // Tour du joueur 2
-            prompt(false);
+            prompt(false, _gameMode);
         }
         else {
             _isntEndGameCondition = false;
@@ -394,7 +512,7 @@ void game() {
 * @param bool _isForPlayer : Es-ce le joueur 1 ou 2
 * @brief Permet d'afficher le promt de chaque joueur
 */
-void prompt(bool _isForPlayer) {
+void prompt(bool _isForPlayer, int _gameMode) {
     bool isntGoodMove(true);
     system("cls");
 
@@ -402,6 +520,8 @@ void prompt(bool _isForPlayer) {
     if (_isForPlayer) {
         system("cls");
         cout << "----- Tour du JOUEUR 1 -----\n" << endl;
+        cout << "Tour : " << round << endl;
+        cout << "joueur 1 (" << MAX_SCORE - machineScore << "), joueur 2 (" << MAX_SCORE - playerScore << ")" << endl;
         cout << "Plateau joueur 1 : " << endl;
         printMatrix(matrixOfPlayerBoat);
         cout << endl;
@@ -457,10 +577,13 @@ void prompt(bool _isForPlayer) {
             }
         }
         system("pause");
+        system("cls");
+        setColor(5); cout << "Changement de sens" << endl; setColor(7);
+        system("pause");
     }
 
     // Joueur 2
-    else {
+    else if (!_isForPlayer && _gameMode != 2) {
         system("cls");
         cout << "----- Tour du JOUEUR 2 -----\n" << endl;
         cout << "Plateau joueur 2 : " << endl;
@@ -473,7 +596,7 @@ void prompt(bool _isForPlayer) {
         // Obtenire les coordonées du tir
         while (isntGoodMove) {
             positionToMatrix();
-            if (isGoodMove(row, column, matrixOfMachineBoat)) {
+            if (isGoodMove(row, column, matrixOfPlayerBoat)) {
                 isntGoodMove = false;
             }
         }
@@ -518,6 +641,12 @@ void prompt(bool _isForPlayer) {
             }
         }
         system("pause");
+        system("cls");
+        setColor(5); cout << "Changement de sens" << endl; setColor(7);
+        system("pause");
+    }
+    else {
+        // Pour le bot auto
     }
     scoreMAJ();
 }
@@ -546,12 +675,18 @@ void scoreMAJ() {
 * @fn void positionToMatrix(string position);
 * @brief Permet de transformer une entré de type lettreChiffres en position sur la matrice
 */
-void positionToMatrix() {
+void positionToMatrix(int _isntForBoatInit, int _boatID) {
     string move;
     bool isntGoodEntry(true);
     while (isntGoodEntry) {
-        cout << "Quel sera votre prochain mouvement > ";
-        cin >> move;
+        if (_isntForBoatInit) {
+            cout << "Quel sera votre prochain mouvement > ";
+            cin >> move;
+        }
+        else {
+            cout << "Quel est la position du votre " << boat[_boatID] << " > ";
+            cin >> move;
+        }
         // Vérification que l'entrée est valide (format lettreChiffre, ex : A1)
         if (move.length() >= 2 && isalpha(move[0]) && isdigit(move[1])) {
             char letter = toupper(move[0]); // Convertir la lettre en majuscule
@@ -560,7 +695,7 @@ void positionToMatrix() {
 
                 // Vérification : (lettre A-J, chiffre 1-10)
                 if (letter >= 'A' && letter <= 'J' && number >= 1 && number <= 10) {
-                    column = letter - 'A';       // Convertir la lettre en colonne
+                    column = letter - 'A';      // Convertir la lettre en colonne
                     row = number - 1;           // Convertir le chiffre en ligne
                     isntGoodEntry = false;      // Sortir de la boucle
                 } else {

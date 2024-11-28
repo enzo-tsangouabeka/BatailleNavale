@@ -78,6 +78,7 @@ Le jeu utilise des couleurs pour améliorer l'expérience visuelle :
 
 
 ### To do
+- Décomenter le code
 - Systeme de choix du niveau
 - Mettre des `short` à la place des `int` (ou des `char`) pour gagner en mémoire
 - Correction des fautes d'orthographes
