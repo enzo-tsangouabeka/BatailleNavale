@@ -61,7 +61,7 @@ int row(0), column(0);
 int round(1);
 int playerScore(playerCarrier + playerBattleship + playerCruiser + playerSubmarine + playerDestroyer);
 int machineScore(machineCarrier + machineBattleship + machineCruiser + machineSubmarine +  machineDestroyer);
-unsigned const int MAX_SCORE(17);
+const int MAX_SCORE(17);
 
 // Différantes valeurs pour les emplacements des matrises
 int DEFAULT_VALUE (0b00000);
@@ -586,6 +586,8 @@ void prompt(bool _isForPlayer, int _gameMode) {
     else if (!_isForPlayer && _gameMode != 2) {
         system("cls");
         cout << "----- Tour du JOUEUR 2 -----\n" << endl;
+        cout << "Tour : " << round++ << endl;
+        cout << "joueur 1 (" << MAX_SCORE - machineScore << "), joueur 2 (" << MAX_SCORE - playerScore << ")" << endl;
         cout << "Plateau joueur 2 : " << endl;
         printMatrix(matrixOfMachineBoat);
         cout << endl;
