@@ -114,6 +114,7 @@ void prompt(bool _isForPlayer, int _gameMode);
 * @param int _row : Variable de la ligne
 * @param int _column : Variable de la colone
 * @param int _matrixToEdit[10][10] : Matrice sur laquel on effectue les actions
+* @param bool _isTouch : permet de savoir si la case doit être afficher avec une croix rouge ou grise
 */
 void shootMissile(int _row, int _column, int _matrixToEdit[10][10], bool _isTouch = false);
 
