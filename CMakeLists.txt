@@ -3,4 +3,5 @@ project(BatailleNavale)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(BatailleNavale main.cpp)
+add_executable(BatailleNavale main.cpp
+        main.h)

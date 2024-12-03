@@ -3,7 +3,7 @@
  * @brief Projet Bataille navale
  * @author Enzo Tsangouabeka
  * @version v1.0
- * @date 9/11/2024
+ * @date 02/12/2024
  */
 
 /* CONSIGNE :
@@ -26,71 +26,29 @@ Niveau 2 (fait et push):
 Un joueur joue contre l'ordinateur qui choisit aléatoirement ses tirs.
 */
 
-#include <iostream>
-#include <cstdlib> // Aléatoire
-#include <string>
-#include <array> // Pour les tableaux
-#include <windows.h> // Pour la couleur
-#include <limits> // Pour ignorer les mauvaises entrées (int)
+#include "main.h"
 
-using namespace std;
+int main() {
+    int answer(0);
+    bool isntGoodNumber(true);
+    system("cls");
+    srand(time(0));
 
-// ---- Valoable gloable ----
-int matrixOfPlayerBoat[10][10] {}; // Matrice des bateaux du joueur
-int matrixOfMachineBoat[10][10] {}; // Matrice des bateaux de la machine
-int matrixOfPlayerMissile[10][10] {}; // Matrice des missiles envoyer par le joueur
-int matrixOfMachineMissile[10][10] {}; // Matrice des missiles envoyer par la machine
+    cout << "Choisissez un niveau de jeu :" << endl;
+    cout << " - Niveau 0 = Generation automatique des bateaux + PvP" << endl;
+    cout << " - Niveau 1 = Generation manuel des bateaux + PvP" << endl;
+    cout << " - Niveau 2 = Generation manuel des bateaux + PvE (non disponible)" << endl;
 
-// Etat des bateaux du joueur (Variable de stockage du nombre de compartiments encore en "vie" de chaque bateau)
-int playerCarrier(5), playerBattleship(4), playerCruiser(3), playerSubmarine(3), playerDestroyer(2);
+    while (isntGoodNumber) {
+        cout << "Votre reponse >";
+        cheakTypeEntire(answer);
+        isntGoodNumber = !(answer == 0 || answer == 1 || answer == 2);
+    }
+    system("cls");
+    game(answer); // Lancement de la partie
+    return 0;
+}
 
-// Etat des bateaux de la machine (Variable de stockage du nombre de compartiments encore en "vie" de chaque bateau)
-int machineCarrier(5), machineBattleship(4), machineCruiser(3), machineSubmarine(3), machineDestroyer(2);
-
-// Tableau utiliser pour l'affichage des matrices
-array<string, 10> tableOfLetters {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"};
-
-// Tableau utiliser pour l'affichage des noms de bateau
-array<string,6> boat {"Erreur", "Carrier", "Battleship", "Cruiser", "Submarine", "Destroyer"};
-
-// Tableau des coups disponibles
-array<string,100> availableMoves;
-
-// Coordonné des missiles
-int row(0), column(0);
-
-// Scores et nombres de tours
-int round(1);
-int playerScore(playerCarrier + playerBattleship + playerCruiser + playerSubmarine + playerDestroyer);
-int machineScore(machineCarrier + machineBattleship + machineCruiser + machineSubmarine + machineDestroyer);
-const int MAX_SCORE(17);
-
-// Différantes valeurs pour les emplacements des matrices
-int DEFAULT_VALUE (0b00000);
-int MISSILE_VALUE (0b100000);
-int CARRIER_VALUE (0b00001);
-int BATTLESHIP_VALUE (0b00010);
-int CRUISER_VALUE (0b00100);
-int SUBMARINE_VALUE (0b01000);
-int DESTROYER_VALUE (0b10000);
-
-// Sous-Programmes
-void printMatrix(int _matrixToPrint[10][10]);
-void generateBoards(bool _isForPlayer, bool _isntManual = true);
-void AddBoat(int _boatID, int _matrixToEdit[10][10], bool  _isntManual = true);
-void setColor(int _color = 7);
-void game(int _gameMode);
-void prompt(bool _isForPlayer, int _gameMode);
-void shootMissile(int _row, int _column, int _matrixToEdit[10][10]);
-void positionToMatrix(int _isntForBoatInit = true, int _boatID = 0, string _externalMove = "N/A");
-void scoreMAJ();
-void initAvalableMoves();
-
-/**
-* @fn string playRandomMove();
-* @brief Permet de retourner une position aléatoire dans le tabeau tabeau availableMoves[] différant de N/A (Afin de ne pas répéter 2 coups)
-* @return string : Retourne une position aléatoire dans le tabeau availableMoves[] différant de N/A
-*/
 string playRandomMove() {
     int randomIndex(0);
     string move;
@@ -104,16 +62,6 @@ string playRandomMove() {
     }
 }
 
-/**
-* @fn bool isEmptyPlacement(int _startPointX, int _startPointY, int _boatDirection, short _boatSize, int _matrixToSearch[10][10]);
-* @brief Permet de verifier la validité d'un placement d'un bateau afin d'éviter la superposition sur une matrice
-* @param int _startPointX : Position x de départ
-* @param int _startPointY : Position y de départ
-* @param int _boatDirection : Direction du bateau
-* @param short _boatSize : Taille du bateau
-* @param int _matrixToSearch[10][10] : Matrice selectionnée
-* @return bool : Son rôle de permettre d'autoriser le placement d'un bateau sur une matrice si celle ci est bien vide à l'emplacement choisi
-*/
 bool isEmptyPlacement(int _startPointX, int _startPointY, int _boatDirection, short _boatSize, int _matrixToSearch[10][10]) {
     for (int i = 0; i < _boatSize; i++) {
         if (_boatDirection == 1) { // vers le haut
@@ -140,15 +88,6 @@ bool isEmptyPlacement(int _startPointX, int _startPointY, int _boatDirection, sh
     return true;
 }
 
-/**
-* @fn bool reachableFinalDestination(int row, int column, int direction, int shipSize);
-* @brief Permet de verifier le si un bateau depasse des limites
-* @param int row : Position y de départ
-* @param int column : Position x de départ
-* @param int direction : Direction du bateau
-* @param int shipSize : Taille du bateau (pour le nombre d'itération dans la boucle)
-* @return bool : Son rôle de permettre d'autoriser le placement d'un bateau sur une matrice si celle ci est bien vide à l'emplacement choisi
-*/
 bool reachableFinalDestination(int row, int column, int direction, int shipSize) {
     switch (direction) {
         case 1: // Haut
@@ -182,14 +121,6 @@ bool reachableFinalDestination(int row, int column, int direction, int shipSize)
     return true;
 }
 
-/**
-* @fn bool isGoodMove(int _startPointX, int _startPointY, int _matrixToSearch[10][10]);
-* @brief Permet de verifier la validité de l'entré utilisateur
-* @param int _startPointX : Position x de départ
-* @param int _startPointY : Position y de départ
-* @param int _matrixToSearch[10][10] : Matrice selectionnée
-* @return bool : Son rôle de permettre d'autoriser un coup en verifiant ça validité
-*/
 bool isGoodMove(int _startPointX, int _startPointY, int _matrixToSearch[10][10]) {
     if (_startPointX < 10 && _startPointY < 10 && _startPointX >= 0 && _startPointY >= 0) {
         if (_matrixToSearch[_startPointX][_startPointY] < MISSILE_VALUE) {
@@ -202,11 +133,6 @@ bool isGoodMove(int _startPointX, int _startPointY, int _matrixToSearch[10][10])
     return false;
 }
 
-/**
-* @fn bool isEndGameCondition();
-* @brief Permet de verifier si la condition de fin de partie est validé ou non
-* @return bool : Son rôle est de revoyer true si la condition de fin de partie est véridique
-*/
 bool isEndGameCondition() {
     scoreMAJ();
 
@@ -219,11 +145,6 @@ bool isEndGameCondition() {
     return (playerScore == 0 || machineScore == 0 ) ;
 }
 
-/**
-* @fn int cheakTypeEntire(int& _entire);
-* @brief Fonction de vérification des entiers
-* @return int : Retourne un entier valide
-*/
 int cheakTypeEntire(int& _entire) {
     while (!(cin >> _entire)) {
         cin.clear();  // Efface le message d'erreur de cin
@@ -233,32 +154,6 @@ int cheakTypeEntire(int& _entire) {
     return _entire;  // Retourner l'entier validé
 }
 
-int main() {
-    int answer(0);
-    bool isntGoodNumber(true);
-    system("cls");
-    srand(time(0));
-
-    cout << "Choisissez un niveau de jeu :" << endl;
-    cout << " - Niveau 0 = Generation automatique des bateaux + PvP" << endl;
-    cout << " - Niveau 1 = Generation manuel des bateaux + PvP" << endl;
-    cout << " - Niveau 2 = Generation manuel des bateaux + PvE (non disponible)" << endl;
-    
-    while (isntGoodNumber) {
-        cout << "Votre reponse >";
-        cheakTypeEntire(answer);
-        isntGoodNumber = !(answer == 0 || answer == 1 || answer == 2);
-    }
-    system("cls");
-    game(answer); // Lancement de la partie
-    return 0;
-}
-
-/**
-* @fn void printMatrix(int _matrixToPrint[10][10]);
-* @brief Permet d'afficher une matrix de 10x10
-* @param int _matrixToPrint[10][10] : Matrice selectionnée
-*/
 void printMatrix(int _matrixToPrint[10][10]) {
     cout << "   ";
     for(const string& letters : tableOfLetters) {
@@ -291,9 +186,10 @@ void printMatrix(int _matrixToPrint[10][10]) {
                     cout << "X  ";
                     break;
                 default: // Erreur
-                    if (_matrixToPrint[i][j] > 0b100000) { // Missile ayant touché un bateau
+                    if (_matrixToPrint[i][j] > MISSILE_VALUE) { // Missile ayant touché un bateau
                         setColor(4); cout << "X  "; setColor(7);
-                    } else {
+                    }
+                    else {
                         cout << "F  "; // Fusion de bateau (Impossible thériquement)
                     }
                 break;
@@ -303,12 +199,6 @@ void printMatrix(int _matrixToPrint[10][10]) {
     }
 }
 
-/**
-* @fn void generateBoard()
-* @brief Géneration des 5 bateaux pour chaqun des 2 camps, 10 au total (horizontal ou vertical)
-* @param bool _isForPlayer : Permet de choisir si le génération des bateau se fait pour le joueur ou la machine
-* @param bool _isntManual : Permet de choisir si le génération des bateau se fait manuellement ou automatiquement
-*/
 void generateBoards(bool _isForPlayer, bool _isntManual) {
     if(_isntManual) {
         if(_isForPlayer) {
@@ -348,18 +238,8 @@ void generateBoards(bool _isForPlayer, bool _isntManual) {
             system("pause");
         }
     }
-
 }
 
-/**
-* @fn void AddBoat(int boatID, int _matrixToEdit[10][10]);
-* @brief Permet d'ajouter un bateau dans une matrixe,
-* @brief En trouvant aléatoirement l'orientation du bateau,
-* @brief Puis en choisissant une position sur la matrix et en essayant de placer un bateau dans une direction,
-* @brief Sinon en le placant dans l'autre direction,
-* @param int boatID : Type du bateau
-* @param int _matrixToEdit : Matrice à éditer
-*/
 void AddBoat(int _boatID, int _matrixToEdit[10][10], bool _isntManual) {
     int boatDirection(0);
     int xPositionToStart(rand() % 10), yPositionToStart(rand() % 10), BOX_VALUE(DEFAULT_VALUE);
@@ -447,11 +327,6 @@ void AddBoat(int _boatID, int _matrixToEdit[10][10], bool _isntManual) {
     }
 }
 
-/**
-* @fn void setColor(int _color);
-* @brief Permet de modifier la couleur du text affichée après l'execution de la routine
-* @param int _color : Couleur choisie
-*/
 void setColor(int _color) {
     /*
     0	Noir
@@ -475,11 +350,6 @@ void setColor(int _color) {
     SetConsoleTextAttribute(hConsole, _color);
 }
 
-/**
-* @fn void printMatrix(int _matrixToPrint[10][10]);
-* @brief Routine principale permettant au jeu de marcher
-* @param int _gameMode : Permet de savoir quel est le mode de jeu afin d'adapter le code en fonction
-*/
 void game(int _gameMode) {
     system("cls");
     bool _isntEndGameCondition(true) ;
@@ -526,12 +396,6 @@ void game(int _gameMode) {
     }
 }
 
-/**
-* @fn prompt(bool _isForPlayer);
-* @brief Permet d'afficher le promt de chaque joueur
-* @param bool _isForPlayer : Es-ce le joueur 1 ou 2int
-* @param_ int _gameMode : Permet de savoir quel est le mode de jeu afin d'adapter le code en fonction
-*/
 void prompt(bool _isForPlayer, int _gameMode) {
     bool isntGoodMove(true);
     system("cls");
@@ -558,7 +422,13 @@ void prompt(bool _isForPlayer, int _gameMode) {
         }
 
         // Effectuer le tir de missile
-        shootMissile(row, column, matrixOfPlayerMissile);
+
+        if (matrixOfMachineBoat[row][column] != DEFAULT_VALUE) {
+            shootMissile(row, column, matrixOfPlayerMissile, true);
+        }
+        else {
+            shootMissile(row, column, matrixOfPlayerMissile);
+        }
         shootMissile(row, column, matrixOfMachineBoat);
 
         if(matrixOfMachineBoat[row][column] - MISSILE_VALUE == CARRIER_VALUE) {
@@ -603,8 +473,7 @@ void prompt(bool _isForPlayer, int _gameMode) {
             round++;
         }
         else {
-            system("pause");
-            system("cls");
+            system("pause"); system("cls");
             setColor(5); cout << "Changement de sens" << endl; setColor(7);
             system("pause");
         }
@@ -632,7 +501,12 @@ void prompt(bool _isForPlayer, int _gameMode) {
         }
 
         // Effectuer le tir de missile
-        shootMissile(row, column, matrixOfMachineMissile);
+        if(matrixOfPlayerBoat[row][column] != DEFAULT_VALUE) {
+            shootMissile(row, column, matrixOfMachineMissile, true);
+        }
+        else {
+            shootMissile(row, column, matrixOfMachineMissile);
+        }
         shootMissile(row, column, matrixOfPlayerBoat);
 
         if(matrixOfPlayerBoat[row][column] - MISSILE_VALUE == CARRIER_VALUE) {
@@ -681,7 +555,12 @@ void prompt(bool _isForPlayer, int _gameMode) {
         positionToMatrix(true, 0, playRandomMove());
 
         // Effectuer le tir de missile
-        shootMissile(row, column, matrixOfMachineMissile);
+        if(matrixOfPlayerBoat[row][column] != DEFAULT_VALUE) {
+            shootMissile(row, column, matrixOfMachineMissile, true);
+        }
+        else {
+            shootMissile(row, column, matrixOfMachineMissile);
+        }
         shootMissile(row, column, matrixOfPlayerBoat);
 
         if(matrixOfPlayerBoat[row][column] - MISSILE_VALUE == CARRIER_VALUE) {
@@ -704,33 +583,20 @@ void prompt(bool _isForPlayer, int _gameMode) {
     scoreMAJ(); // Mets à jour les varibles de score
 }
 
-/**
-* @fn void shootMissile(int _row, int _column, int _matrixToEdit[10][10]);
-* @brief Permet de modifier une case de la matrice _matrixToEdit[][] afin de lui ajouter MISSILE_VALUE (pour avoir un X)
-* @param int _row : Variable de la ligne
-* @param int _column : Variable de la colone
-* @param int _matrixToEdit[10][10] : Matrice sur laquel on effectue les actions
-*/
-void shootMissile(int _row, int _column, int _matrixToEdit[10][10]) {
-    _matrixToEdit[_row][_column] += MISSILE_VALUE;
+void shootMissile(int _row, int _column, int _matrixToEdit[10][10], bool _isTouch) {
+    if (_isTouch) {
+        _matrixToEdit[_row][_column] += GOOD_MISSILE_VALUE;
+    }
+    else {
+        _matrixToEdit[_row][_column] += MISSILE_VALUE;
+    }
 }
 
-/**
-* @fn void scoreMAJ();
-* @brief Permet de mettre à jour les variables playerScore et machineScore
-*/
 void scoreMAJ() {
     playerScore = playerCarrier + playerBattleship + playerCruiser + playerSubmarine + playerDestroyer;
     machineScore = machineCarrier + machineBattleship + machineCruiser + machineSubmarine +  machineDestroyer;
 }
 
-/**
-* @fn void positionToMatrix(string position);
-* @param int _isntForBoatInit : Permet de savoir si la routine est appelée par la routine generateBoards() ou par la routine prompt()
-* @param int _boatID : Utiliser pour afficher le nom du bateau
-* @param string _externalMove : Utiliser par le code du niveau 2 pour transformer une entré de type "A1" en position type row = 0 column = 0
-* @brief Permet de transformer une entré de type lettreChiffres en position sur la matrice
-*/
 void positionToMatrix(int _isntForBoatInit, int _boatID, string _externalMove) {
     string move;
     bool isntGoodEntry(true);
@@ -775,10 +641,6 @@ void positionToMatrix(int _isntForBoatInit, int _boatID, string _externalMove) {
     }
 }
 
-/**
-* @fn void initAvalableMoves();
-* @brief Permet d'initialiser le tableau availableMoves[]
-*/
 void initAvalableMoves() {
     int index(0);
     for (char col = 'A'; col <= 'J'; ++col) {

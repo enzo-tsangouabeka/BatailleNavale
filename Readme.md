@@ -47,7 +47,7 @@ Lancez l'exécutable généré :
 ---
 
 ### Détails techniques
-#### **Types de navires :**
+#### **Types de navires**
 
     Carrier : 5 cases
     Battleship : 4 cases
